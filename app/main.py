@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+import httpx
 
 from app.core.database import Base  # Usually imported from core/database though
 import app.models # This triggers the registration of everything in the folder
