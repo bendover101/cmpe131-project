@@ -1,9 +1,13 @@
 from fastapi import APIRouter
-
-from app.api.v1.endpoints.rapidapi import router as rapidapi_router
-from app.api.v1.endpoints.booking import router as booking_router
-
+from app.api.v1.endpoints import travel, booking, rapidapi
+from app.api.v1 import hostels, flights, attractions 
 
 api_router = APIRouter()
-api_router.include_router(rapidapi_router)
-api_router.include_router(booking_router)
+
+api_router.include_router(travel.router, prefix="/travel", tags=["travel"])
+api_router.include_router(booking.router, prefix="/bookings", tags=["booking"])
+api_router.include_router(rapidapi.router, prefix="/rapidapi", tags=["rapidapi"])
+
+api_router.include_router(hostels.router, tags=["search"])
+api_router.include_router(flights.router, tags=["search"])
+api_router.include_router(attractions.router, tags=["search"])
