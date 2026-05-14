@@ -1,5 +1,6 @@
 from functools import lru_cache
 import json
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -18,37 +19,12 @@ class RapidApiClient:
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
 
-    def search_attractions(
-        self,
-        start_date: str,
-        end_date: str,
-        dest_id: str,
-        locale: str = "en-gb",
-        page_number: int = 0,
-        currency: str = "AED",
-        order_by: str = "attr_book_score",
-    ):
-        querystring = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "locale": locale,
-            "page_number": str(page_number),
-            "currency": currency,
-            "order_by": order_by,
-            "dest_id": dest_id,
-        }
-
-        return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/attractions/search",
-            params=querystring,
-        )
-
     def search_hotels(
         self,
         page_number: int,
         dest_type: str,
-        dest_id: str,
+        dest_name: str,
+        country_name: str,
         units: str,
         children_number: int,
         locale: str,
@@ -62,33 +38,58 @@ class RapidApiClient:
         categories_filter_ids: str | None = None,
         children_ages: str | None = None,
     ):
+        dest_id = self._resolve_city_dest_id(dest_name=dest_name)
+
         querystring = {
             "page_number": str(page_number),
-            "dest_type": dest_type,
             "dest_id": dest_id,
+            "search_type": dest_type.upper(),
             "units": units,
-            "locale": locale,
-            "include_adjacency": str(include_adjacency).lower(),
-            "filter_by_currency": filter_by_currency,
-            "order_by": order_by,
-            "checkin_date": checkin_date,
-            "checkout_date": checkout_date,
-            "room_number": str(room_number),
-            "adults_number": str(adults_number),
+            "languagecode": locale,
+            "currency_code": filter_by_currency,
+            "arrival_date": checkin_date,
+            "departure_date": checkout_date,
+            "room_qty": str(room_number),
+            "adults": str(adults_number),
         }
 
-        if categories_filter_ids:
-            querystring["categories_filter_ids"] = categories_filter_ids
-
         if children_number is not None and children_number >= 1:
-            querystring["children_number"] = str(children_number)
             if children_ages:
-                querystring["children_ages"] = children_ages
+                querystring["children_age"] = children_ages.replace(" ", "")
 
         return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/hotels/search",
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/hotels/searchHotels",
             params=querystring,
+        )
+
+    def _resolve_city_dest_id(self, dest_name: str) -> str:
+        response = self._get(
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/hotels/searchDestination",
+            params={"query": dest_name},
+        )
+
+        data = response.get("data", [])
+        if not data:
+            raise RapidApiError(
+                404,
+                f"No destination found for '{dest_name}'.",
+            )
+
+        # Try to find a city first
+        for item in data:
+            if item.get("search_type") == "city" and item.get("dest_id"):
+                return str(item["dest_id"])
+
+        # Fallback to the first item with a dest_id
+        for item in data:
+            if item.get("dest_id"):
+                return str(item["dest_id"])
+
+        raise RapidApiError(
+            404,
+            f"No destination id found for '{dest_name}'.",
         )
 
     def search_rental_cars(
@@ -133,27 +134,25 @@ class RapidApiClient:
         return_date: str | None = None,
     ):
         querystring = {
-            "depart_date": depart_date,
-            "from_code": from_code,
-            "to_code": to_code,
+            "departDate": depart_date,
+            "fromId": from_code,
+            "toId": to_code,
             "adults": str(adults),
-            "locale": locale,
-            "page_number": str(page_number),
-            "currency": currency,
-            "order_by": order_by,
-            "flight_type": flight_type,
-            "cabin_class": cabin_class,
+            "pageNo": str(page_number + 1), # pageNo is 1-indexed in booking-com15
+            "currency_code": currency,
+            "sort": order_by,
+            "cabinClass": cabin_class,
         }
 
         if children_ages:
-            querystring["children_ages"] = children_ages
+            querystring["children"] = children_ages.replace(" ", "")
 
         if return_date:
-            querystring["return_date"] = return_date
+            querystring["returnDate"] = return_date
 
         return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/flights/search",
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/flights/searchFlights",
             params=querystring,
         )
 

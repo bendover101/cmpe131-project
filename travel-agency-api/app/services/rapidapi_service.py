@@ -4,28 +4,6 @@ class RapidApiService:
     def __init__(self, rapidapi_client: RapidApiClient) -> None:
         self.rapidapi = rapidapi_client
 
-    def search_attractions(
-        self,
-        start_date: str,
-        end_date: str,
-        dest_name: str,
-        country_name: str,
-        locale: str = "en-gb",
-        page_number: int = 0,
-        currency: str = "AED",
-        order_by: str = "attr_book_score",
-    ):
-        return self.rapidapi.search_attractions(
-            start_date=start_date,
-            end_date=end_date,
-            dest_name=dest_name,
-            country_name=country_name,
-            locale=locale,
-            page_number=page_number,
-            currency=currency,
-            order_by=order_by,
-        )
-
     def search_hotels(
         self,
         page_number: int,

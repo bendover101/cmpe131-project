@@ -9,32 +9,6 @@ def get_rapidapi_service() -> RapidApiService:
     return RapidApiService(get_rapidapi_client())
 
 
-@router.get("/attractions/search")
-async def search_attractions(
-    start_date: str = Query(..., description="Format: YYYY-MM-DD"),
-    end_date: str = Query(..., description="Format: YYYY-MM-DD"),
-    dest_name: str = Query(..., description="Example: New York"),
-    country_name: str = Query(..., description="Example: United States"),
-    locale: str = Query("en-gb"),
-    page_number: int = Query(0, ge=0),
-    currency: str = Query("AED"),
-    order_by: str = Query("attr_book_score"),
-    service: RapidApiService = Depends(get_rapidapi_service),
-):
-    try:
-        return service.search_attractions(
-            start_date=start_date,
-            end_date=end_date,
-            dest_name=dest_name,
-            country_name=country_name,
-            locale=locale,
-            page_number=page_number,
-            currency=currency,
-            order_by=order_by,
-        )
-    except RapidApiError as error:
-        raise HTTPException(status_code=error.status_code, detail=error.detail) from error
-
 
 @router.get("/hotels/search")
 async def search_hotels(

@@ -19,35 +19,6 @@ class RapidApiClient:
     def __init__(self, api_key: str) -> None:
         self.api_key = api_key
 
-    def search_attractions(
-        self,
-        start_date: str,
-        end_date: str,
-        dest_name: str,
-        country_name: str,
-        locale: str = "en-gb",
-        page_number: int = 0,
-        currency: str = "AED",
-        order_by: str = "attr_book_score",
-    ):
-        dest_id = self._resolve_city_dest_id(dest_name=dest_name, country_name=country_name)
-
-        querystring = {
-            "start_date": start_date,
-            "end_date": end_date,
-            "locale": locale,
-            "page_number": str(page_number),
-            "currency": currency,
-            "order_by": order_by,
-            "dest_id": dest_id,
-        }
-
-        return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/attractions/search",
-            params=querystring,
-        )
-
     def search_hotels(
         self,
         page_number: int,
@@ -67,112 +38,59 @@ class RapidApiClient:
         categories_filter_ids: str | None = None,
         children_ages: str | None = None,
     ):
-        dest_id = self._resolve_city_dest_id(dest_name=dest_name, country_name=country_name)
+        dest_id = self._resolve_city_dest_id(dest_name=dest_name)
 
         querystring = {
             "page_number": str(page_number),
-            "dest_type": dest_type,
             "dest_id": dest_id,
+            "search_type": dest_type.upper(),
             "units": units,
-            "locale": locale,
-            "include_adjacency": str(include_adjacency).lower(),
-            "filter_by_currency": filter_by_currency,
-            "order_by": order_by,
-            "checkin_date": checkin_date,
-            "checkout_date": checkout_date,
-            "room_number": str(room_number),
-            "adults_number": str(adults_number),
+            "languagecode": locale,
+            "currency_code": filter_by_currency,
+            "arrival_date": checkin_date,
+            "departure_date": checkout_date,
+            "room_qty": str(room_number),
+            "adults": str(adults_number),
         }
 
-        if categories_filter_ids:
-            querystring["categories_filter_ids"] = categories_filter_ids
-
         if children_number is not None and children_number >= 1:
-            querystring["children_number"] = str(children_number)
             if children_ages:
-                querystring["children_ages"] = children_ages
+                querystring["children_age"] = children_ages.replace(" ", "")
 
         return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/hotels/search",
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/hotels/searchHotels",
             params=querystring,
         )
 
-    def _resolve_city_dest_id(self, dest_name: str, country_name: str) -> str:
-        country_code = self._resolve_country_code(country_name)
+    def _resolve_city_dest_id(self, dest_name: str) -> str:
         response = self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/static/cities",
-            params={"country": country_code, "name": dest_name, "page": "0"},
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/hotels/searchDestination",
+            params={"query": dest_name},
         )
 
-        cities: list[dict[str, Any]] = []
-        if isinstance(response, list):
-            cities = [item for item in response if isinstance(item, dict)]
-        elif isinstance(response, dict):
-            result = response.get("result")
-            if isinstance(result, list):
-                cities = [item for item in result if isinstance(item, dict)]
-
-        if not cities:
+        data = response.get("data", [])
+        if not data:
             raise RapidApiError(
                 404,
-                f"No city match found for '{dest_name}' in '{country_name}'.",
+                f"No destination found for '{dest_name}'.",
             )
 
-        normalized_dest_name = self._normalize(dest_name)
-        for city in cities:
-            city_name = city.get("name")
-            dest_id = city.get("dest_id") or city.get("city_id")
-            if not city_name or not dest_id:
-                continue
+        # Try to find a city first
+        for item in data:
+            if item.get("search_type") == "city" and item.get("dest_id"):
+                return str(item["dest_id"])
 
-            if self._normalize(str(city_name)) == normalized_dest_name:
-                return str(dest_id)
-
-        first_match = cities[0]
-        first_match_dest_id = first_match.get("dest_id") or first_match.get("city_id")
-        if first_match_dest_id:
-            return str(first_match_dest_id)
+        # Fallback to the first item with a dest_id
+        for item in data:
+            if item.get("dest_id"):
+                return str(item["dest_id"])
 
         raise RapidApiError(
             404,
-            f"No destination id found for '{dest_name}' in '{country_name}'.",
+            f"No destination id found for '{dest_name}'.",
         )
-
-    def _resolve_country_code(self, country_name: str) -> str:
-        response = self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/static/country",
-            params={},
-        )
-
-        normalized_country_name = self._normalize(country_name)
-        candidates: list[dict[str, Any]] = []
-        if isinstance(response, list):
-            candidates = [item for item in response if isinstance(item, dict)]
-        elif isinstance(response, dict):
-            for value in response.values():
-                if isinstance(value, list):
-                    candidates.extend(item for item in value if isinstance(item, dict))
-
-        for country in candidates:
-            code = country.get("code") or country.get("country")
-            name = country.get("name") or country.get("country_name")
-            if not code or not name:
-                continue
-
-            if self._normalize(str(code)) == normalized_country_name:
-                return str(code).lower()
-
-            if self._normalize(str(name)) == normalized_country_name:
-                return str(code).lower()
-
-        raise RapidApiError(404, f"Country not found: '{country_name}'.")
-
-    @staticmethod
-    def _normalize(value: str) -> str:
-        return " ".join(value.strip().lower().split())
 
     def search_rental_cars(
         self,
@@ -216,27 +134,25 @@ class RapidApiClient:
         return_date: str | None = None,
     ):
         querystring = {
-            "depart_date": depart_date,
-            "from_code": from_code,
-            "to_code": to_code,
+            "departDate": depart_date,
+            "fromId": from_code,
+            "toId": to_code,
             "adults": str(adults),
-            "locale": locale,
-            "page_number": str(page_number),
-            "currency": currency,
-            "order_by": order_by,
-            "flight_type": flight_type,
-            "cabin_class": cabin_class,
+            "pageNo": str(page_number + 1), # pageNo is 1-indexed in booking-com15
+            "currency_code": currency,
+            "sort": order_by,
+            "cabinClass": cabin_class,
         }
 
         if children_ages:
-            querystring["children_ages"] = children_ages
+            querystring["children"] = children_ages.replace(" ", "")
 
         if return_date:
-            querystring["return_date"] = return_date
+            querystring["returnDate"] = return_date
 
         return self._get(
-            host="booking-com.p.rapidapi.com",
-            path="v1/flights/search",
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/flights/searchFlights",
             params=querystring,
         )
 
