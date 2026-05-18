@@ -20,8 +20,8 @@ class User(Base):
     Last_Name = Column(String, nullable=False)
     Email = Column(String, unique=True, nullable=False, index=True)
     Phone_Number = Column(String)
+    Password = Column(String)
 
-    # Relationship back to Bookings
     bookings = relationship("Booking", back_populates="user")
 
 class Booking(Base):
@@ -36,6 +36,19 @@ class Booking(Base):
     user = relationship("User", back_populates="bookings")
     hotel_reservations = relationship("HotelReservation", back_populates="booking", cascade="all, delete-orphan")
     flight_reservations = relationship("FlightReservation", back_populates="booking", cascade="all, delete-orphan")
+    attraction_reservations = relationship("AttractionReservation", back_populates="booking", cascade="all, delete-orphan")
+
+    @property
+    def hotelReservations(self):
+        return self.hotel_reservations
+
+    @property
+    def flightReservations(self):
+        return self.flight_reservations
+
+    @property
+    def attractionReservations(self):
+        return self.attraction_reservations
 
 
 class HotelReservation(Base):
@@ -78,3 +91,16 @@ class FlightReservation(Base):
 
     booking = relationship("Booking", back_populates="flight_reservations")
 
+
+class AttractionReservation(Base):
+    __tablename__ = "attraction_reservations"
+    Reservation_No = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    Booking_Id = Column(Integer, ForeignKey("bookings.Booking_Id"), nullable=False)
+    Attraction_Name = Column(String, nullable=False)
+    Location = Column(String, nullable=False)
+    Date = Column(Date, nullable=False)
+    Time = Column(String, nullable=True)
+    Price_Type = Column(String, nullable=False) # e.g. "Free", "Pay what you want", "Fixed"
+    Rate = Column(Float, nullable=True) # 0 for free
+
+    booking = relationship("Booking", back_populates="attraction_reservations")

@@ -8,7 +8,7 @@ class RapidApiService:
         self,
         page_number: int,
         dest_type: str,
-        dest_id: str,
+        dest_name: str,
         units: str,
         children_number: int,
         locale: str,
@@ -25,7 +25,7 @@ class RapidApiService:
         return self.rapidapi.search_hotels(
             page_number=page_number,
             dest_type=dest_type,
-            dest_id=dest_id,
+            dest_name=dest_name,
             units=units,
             children_number=children_number,
             locale=locale,
@@ -43,8 +43,8 @@ class RapidApiService:
     def search_flights(
         self,
         depart_date: str,
-        from_code: str,
-        to_code: str,
+        from_name: str,
+        to_name: str,
         adults: int,
         locale: str = "en-gb",
         page_number: int = 0,
@@ -57,8 +57,8 @@ class RapidApiService:
     ):
         return self.rapidapi.search_flights(
             depart_date=depart_date,
-            from_code=from_code,
-            to_code=to_code,
+            from_name=from_name,
+            to_name=to_name,
             adults=adults,
             locale=locale,
             page_number=page_number,

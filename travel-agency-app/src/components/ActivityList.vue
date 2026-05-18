@@ -1,13 +1,51 @@
 <script setup>
-defineProps({
+import { ref, computed } from 'vue'
+
+const props = defineProps({
   activities: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   error: { type: String, default: null },
+  selectedActivities: { type: Array, default: () => [] },
 })
+
+const emit = defineEmits(['toggle-activity'])
+
+const filterType = ref('ALL') // 'ALL' or 'FREE'
+
+const filteredActivities = computed(() => {
+  if (filterType.value === 'FREE') {
+    return props.activities.filter(act => act.pricePerPerson === 0 || act.priceType === 'Free')
+  }
+  return props.activities
+})
+
+function isSelected(activityId) {
+  return props.selectedActivities.some(a => a.id === activityId)
+}
 </script>
 
 <template>
   <div class="panel-content">
+    <div class="filter-bar">
+      <span class="filter-label">🎯 Filter Activities:</span>
+      <div class="filter-options">
+        <button
+          class="filter-btn"
+          :class="{ 'filter-btn--active': filterType === 'ALL' }"
+          @click="filterType = 'ALL'"
+        >
+          All Activities
+        </button>
+        <button
+          class="filter-btn"
+          :class="{ 'filter-btn--active': filterType === 'FREE' }"
+          @click="filterType = 'FREE'"
+        >
+          Free & PWYW Tours
+        </button>
+      </div>
+    </div>
+
     <template v-if="loading">
       <div v-for="n in 5" :key="n" class="card skeleton" />
     </template>
@@ -17,19 +55,19 @@ defineProps({
       <p>{{ error }}</p>
     </div>
 
-    <div v-else-if="activities.length === 0" class="state-message">
+    <div v-else-if="filteredActivities.length === 0" class="state-message">
       <span class="state-icon">🎯</span>
-      <p>No activities found for this destination.</p>
+      <p>No activities match the selected filter.</p>
     </div>
 
-    <p v-else class="activities-hint">Browse activities available for this destination.</p>
-
     <div
-      v-for="activity in activities"
+      v-for="activity in filteredActivities"
       :key="activity.id"
       class="card activity-card"
+      :class="{ 'card--selected': isSelected(activity.id) }"
+      @click="emit('toggle-activity', activity)"
     >
-      <div class="activity-card__icon">{{ activity.icon }}</div>
+      <div class="activity-card__icon">{{ activity.icon || '🎯' }}</div>
 
       <div class="activity-card__body">
         <div class="activity-card__top">
@@ -45,9 +83,17 @@ defineProps({
             <div class="activity-desc">{{ activity.description }}</div>
           </div>
           <div class="activity-price-block">
-            <span class="price">${{ activity.pricePerPerson }}</span>
-            <span class="price-sub">/person</span>
-            <div class="price-total">${{ activity.totalPrice.toLocaleString() }} total</div>
+            <span class="price">{{ activity.pricePerPerson === 0 ? 'FREE' : '$' + activity.pricePerPerson }}</span>
+            <span class="price-sub" v-if="activity.pricePerPerson > 0">/person</span>
+            <div class="price-total" v-if="activity.pricePerPerson > 0">${{ activity.totalPrice.toLocaleString() }} total</div>
+            <div class="price-total" v-else>Pay what you want</div>
+            
+            <button
+              class="btn-select"
+              :class="{ 'btn-select--selected': isSelected(activity.id) }"
+            >
+              {{ isSelected(activity.id) ? '✓ Added' : '+ Add' }}
+            </button>
           </div>
         </div>
       </div>
@@ -63,11 +109,49 @@ defineProps({
   gap: 0.75rem;
 }
 
-.activities-hint {
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--color-border);
+  margin-bottom: 0.25rem;
+}
+
+.filter-label {
   font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.filter-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-btn {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: #fff;
   color: var(--color-text-muted);
-  margin: 0;
-  font-style: italic;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover {
+  border-color: var(--color-primary-light);
+  color: var(--color-text);
+}
+
+.filter-btn--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff !important;
 }
 
 .card {
@@ -79,11 +163,17 @@ defineProps({
   align-items: flex-start;
   gap: 0.75rem;
   padding: 1rem;
+  cursor: pointer;
 }
 
 .card:hover {
   border-color: var(--color-primary-light);
   box-shadow: 0 4px 16px rgba(26, 54, 93, 0.1);
+}
+
+.card--selected {
+  border-color: var(--color-primary) !important;
+  background: var(--color-primary-bg);
 }
 
 .skeleton {
@@ -171,6 +261,11 @@ defineProps({
 .activity-price-block {
   text-align: right;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-height: 80px;
 }
 
 .price {
@@ -189,5 +284,28 @@ defineProps({
   color: var(--color-text);
   font-weight: 600;
   margin-top: 2px;
+}
+
+.btn-select {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--color-primary);
+  background: #fff;
+  color: var(--color-primary);
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.15s;
+}
+
+.btn-select:hover {
+  background: var(--color-primary-bg);
+}
+
+.btn-select--selected {
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  border-color: var(--color-primary) !important;
 }
 </style>

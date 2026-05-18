@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 import httpx
 import os
 from datetime import datetime
@@ -6,7 +6,12 @@ from datetime import datetime
 router = APIRouter()
 
 @router.get("/hostels")
-async def search_hostels(destination: str, checkin: str, checkout: str, agency_id: str):
+async def search_hostels(
+    destination: str = Query(..., description="City or location name, e.g. London, New York"),
+    checkin: str = Query(..., description="Format: YYYY-MM-DD"),
+    checkout: str = Query(..., description="Format: YYYY-MM-DD"),
+    agency_id: str = Query(..., description="Agency ID")
+):
     rapidapi_key = os.getenv("RAPIDAPI_KEY")
     if not rapidapi_key:
         raise HTTPException(status_code=500, detail="API Key missing")

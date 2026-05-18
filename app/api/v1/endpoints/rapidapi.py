@@ -14,7 +14,7 @@ def get_rapidapi_service() -> RapidApiService:
 async def search_hotels(
     page_number: int = Query(0, ge=0),
     dest_type: str = Query("city"),
-    dest_id: str = Query(..., description="Example: -553173"),
+    dest_name: str = Query(..., description="Example: New York"),
     units: str = Query("metric"),
     children_number: int = Query(0, ge=0),
     locale: str = Query("en-gb"),
@@ -33,7 +33,7 @@ async def search_hotels(
         return service.search_hotels(
             page_number=page_number,
             dest_type=dest_type,
-            dest_id=dest_id,
+            dest_name=dest_name,
             units=units,
             children_number=children_number,
             locale=locale,
@@ -54,8 +54,8 @@ async def search_hotels(
 @router.get("/flights/search")
 async def search_flights(
     depart_date: str = Query(..., description="Format: YYYY-MM-DD"),
-    from_code: str = Query(..., description="Example: ONT.AIRPORT"),
-    to_code: str = Query(..., description="Example: NYC.CITY"),
+    from_name: str = Query(..., description="Example: San Francisco"),
+    to_name: str = Query(..., description="Example: London"),
     adults: int = Query(1, ge=1),
     locale: str = Query("en-gb"),
     page_number: int = Query(0, ge=0),
@@ -70,8 +70,8 @@ async def search_flights(
     try:
         return service.search_flights(
             depart_date=depart_date,
-            from_code=from_code,
-            to_code=to_code,
+            from_name=from_name,
+            to_name=to_name,
             adults=adults,
             locale=locale,
             page_number=page_number,

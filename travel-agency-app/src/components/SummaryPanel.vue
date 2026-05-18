@@ -1,4 +1,6 @@
 <script setup>
+import { ref, computed } from 'vue'
+
 const props = defineProps({
   tripType: { type: String, default: 'ONEWAY' },
   selectedFlight: { type: Object, default: null },
@@ -15,6 +17,15 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['book', 'clear'])
+
+const budgetCap = ref(1500)
+
+const isOverBudget = computed(() => props.totalPrice > budgetCap.value)
+
+const budgetPercent = computed(() => {
+  if (budgetCap.value <= 0) return 0
+  return Math.min(100, Math.round((props.totalPrice / budgetCap.value) * 100))
+})
 </script>
 
 <template>
@@ -36,6 +47,34 @@ const emit = defineEmits(['book', 'clear'])
       >
         ✕ Clear
       </button>
+    </div>
+
+    <!-- Budget Cap Panel -->
+    <div class="budget-cap-panel">
+      <div class="budget-cap-label">
+        <span>💰 Set Trip Budget Cap:</span>
+        <div class="budget-input-wrapper">
+          <span class="currency-symbol">$</span>
+          <input
+            v-model.number="budgetCap"
+            type="number"
+            class="budget-input"
+            min="0"
+            step="50"
+          />
+        </div>
+      </div>
+      <div class="budget-progress-bar">
+        <div
+          class="budget-progress"
+          :class="{ 'budget-progress--warning': isOverBudget }"
+          :style="{ width: budgetPercent + '%' }"
+        />
+      </div>
+      <div class="budget-text-summary">
+        <span class="budget-spent">${{ totalPrice.toLocaleString() }} spent</span>
+        <span class="budget-total">of ${{ budgetCap.toLocaleString() }} limit</span>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -126,20 +165,25 @@ const emit = defineEmits(['book', 'clear'])
             class="summary-item summary-item--activity"
           >
             <div class="activity-row">
-              <span class="act-icon">{{ act.icon }}</span>
+              <span class="act-icon">{{ act.icon || '🎯' }}</span>
               <div class="act-info">
                 <div class="item-title">{{ act.name }}</div>
                 <div class="item-sub">{{ act.duration }}</div>
               </div>
-              <div class="item-price">${{ act.totalPrice.toLocaleString() }}</div>
+              <div class="item-price">{{ act.pricePerPerson === 0 ? 'FREE' : '$' + act.totalPrice.toLocaleString() }}</div>
             </div>
           </div>
+        </div>
+
+        <!-- Budget Warning Banner -->
+        <div v-if="isOverBudget" class="over-budget-warning">
+          ⚠️ <strong>Over Budget Warning:</strong> Your total spend (${{ totalPrice.toLocaleString() }}) exceeds your budget cap of ${{ budgetCap.toLocaleString() }} by ${{ (totalPrice - budgetCap.value).toLocaleString() }}. Booking is disabled.
         </div>
 
         <!-- Total -->
         <div class="summary-total">
           <span class="total-label">Total</span>
-          <span class="total-price">${{ totalPrice.toLocaleString() }}</span>
+          <span class="total-price" :class="{ 'total-price--warning': isOverBudget }">${{ totalPrice.toLocaleString() }}</span>
         </div>
 
         <!-- Booking error -->
@@ -150,7 +194,7 @@ const emit = defineEmits(['book', 'clear'])
         <!-- Book button -->
         <button
           class="btn-book"
-          :disabled="isBooking || !!bookingResult"
+          :disabled="isBooking || !!bookingResult || isOverBudget"
           @click="emit('book')"
         >
           <span v-if="isBooking" class="spinner" />
@@ -237,6 +281,82 @@ const emit = defineEmits(['book', 'clear'])
 .btn-clear:hover {
   color: #c0392b;
   background: #fce4ec;
+}
+
+/* Budget Cap Panel */
+.budget-cap-panel {
+  background: #fafcff;
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.85rem 1.25rem;
+}
+
+.budget-cap-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 0.5rem;
+}
+
+.budget-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.15rem 0.4rem;
+}
+
+.currency-symbol {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 700;
+  margin-right: 1px;
+}
+
+.budget-input {
+  width: 70px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  outline: none;
+}
+
+.budget-progress-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.35rem;
+}
+
+.budget-progress {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 3px;
+  transition: width 0.35s ease, background-color 0.35s ease;
+}
+
+.budget-progress--warning {
+  background: #ef4444 !important;
+}
+
+.budget-text-summary {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.budget-spent {
+  color: var(--color-text);
+}
+
+.budget-total {
+  color: var(--color-text-muted);
 }
 
 /* Empty state */
@@ -366,6 +486,17 @@ const emit = defineEmits(['book', 'clear'])
   margin: 0 1.25rem;
 }
 
+.over-budget-warning {
+  margin: 0 1.25rem 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1.5px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
 /* Total */
 .summary-total {
   display: flex;
@@ -388,6 +519,11 @@ const emit = defineEmits(['book', 'clear'])
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--color-primary);
+  transition: color 0.2s;
+}
+
+.total-price--warning {
+  color: #ef4444 !important;
 }
 
 /* Book button */
@@ -415,8 +551,10 @@ const emit = defineEmits(['book', 'clear'])
 }
 
 .btn-book:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: #cbd5e1;
+  color: #94a3b8;
 }
 
 .booking-error {
@@ -472,7 +610,6 @@ const emit = defineEmits(['book', 'clear'])
 
 .booking-confirmation__sub {
   font-size: 0.72rem;
-  color: #4ade80;
   color: #16a34a;
   margin-top: 3px;
 }

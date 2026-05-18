@@ -24,7 +24,6 @@ class RapidApiClient:
         page_number: int,
         dest_type: str,
         dest_name: str,
-        country_name: str,
         units: str,
         children_number: int,
         locale: str,
@@ -41,7 +40,7 @@ class RapidApiClient:
         dest_id = self._resolve_city_dest_id(dest_name=dest_name)
 
         querystring = {
-            "page_number": str(page_number),
+            "page_number": str(page_number + 1),
             "dest_id": dest_id,
             "search_type": dest_type.upper(),
             "units": units,
@@ -51,6 +50,7 @@ class RapidApiClient:
             "departure_date": checkout_date,
             "room_qty": str(room_number),
             "adults": str(adults_number),
+            "sort_by": order_by,
         }
 
         if children_number is not None and children_number >= 1:
@@ -118,11 +118,40 @@ class RapidApiClient:
             params=querystring,
         )
 
+    def _resolve_flight_dest_id(self, dest_name: str) -> str:
+        response = self._get(
+            host="booking-com15.p.rapidapi.com",
+            path="api/v1/flights/searchDestination",
+            params={"query": dest_name},
+        )
+
+        data = response.get("data", [])
+        if not data:
+            raise RapidApiError(
+                404,
+                f"No flight destination found for '{dest_name}'.",
+            )
+
+        # Try to find an airport first
+        for item in data:
+            if item.get("type") == "AIRPORT" and item.get("id"):
+                return str(item["id"])
+
+        # Fallback to the first item with an id
+        for item in data:
+            if item.get("id"):
+                return str(item["id"])
+
+        raise RapidApiError(
+            404,
+            f"No flight destination id found for '{dest_name}'.",
+        )
+
     def search_flights(
         self,
         depart_date: str,
-        from_code: str,
-        to_code: str,
+        from_name: str,
+        to_name: str,
         adults: int,
         locale: str = "en-gb",
         page_number: int = 0,
@@ -133,10 +162,13 @@ class RapidApiClient:
         children_ages: str | None = None,
         return_date: str | None = None,
     ):
+        from_id = self._resolve_flight_dest_id(from_name)
+        to_id = self._resolve_flight_dest_id(to_name)
+
         querystring = {
             "departDate": depart_date,
-            "fromId": from_code,
-            "toId": to_code,
+            "fromId": from_id,
+            "toId": to_id,
             "adults": str(adults),
             "pageNo": str(page_number + 1), # pageNo is 1-indexed in booking-com15
             "currency_code": currency,
@@ -178,7 +210,6 @@ class RapidApiClient:
             raise RapidApiError(500, "Failed to connect to RapidAPI.") from error
 
 
-@lru_cache(maxsize=1)
 def get_rapidapi_client() -> RapidApiClient:
     settings = get_settings()
     if not settings.rapidapi_key:

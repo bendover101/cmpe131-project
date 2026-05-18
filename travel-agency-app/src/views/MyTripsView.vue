@@ -30,10 +30,7 @@ async function loadTrips() {
   errorMessage.value = ''
 
   try {
-    trips.value = await bookingService.listBookings({
-      userId: userId.value,
-      agentId: tenantConfig.agentId,
-    })
+    trips.value = await bookingService.getUserBookings(userId.value)
   } catch (error) {
     errorMessage.value = error.message || 'Unable to load saved trips.'
     trips.value = []
@@ -96,7 +93,7 @@ onMounted(() => {
           <div v-else class="reservation-grid">
             <div v-for="hotel in trip.hotelReservations" :key="`${trip.bookingId}-${hotel.Reservation_No}`" class="reservation-card">
               <div class="reservation-card__title">Hotel Reservation</div>
-              <div><strong>Hotal Name:</strong> {{ hotel.Hotel_Name || 'Hotel name unavailable' }}</div>
+              <div><strong>Hotel Name:</strong> {{ hotel.Hotel_Name || 'Hotel name unavailable' }}</div>
               <div>Check in: {{ formatDate(hotel.Check_In_Date) }} {{ hotel.Check_In_Time }}</div>
               <div>Check out: {{ formatDate(hotel.Check_Out_Date) }} {{ hotel.Check_Out_Time }}</div>
               <div>Rate: ${{ Number(hotel.Rate || 0).toLocaleString() }}</div>

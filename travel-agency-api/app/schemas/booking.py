@@ -21,6 +21,14 @@ class FlightReservationCreate(BaseModel):
     Origin_Airport_Code: str
     Destination_Airport_Code: str
 
+class AttractionReservationCreate(BaseModel):
+    Attraction_Name: str
+    Location: str
+    Date: date
+    Time: Optional[str] = None
+    Price_Type: str
+    Rate: Optional[float] = None
+
 class HotelReservationUpdate(BaseModel):
     Hotel_Code: Optional[int] = None
     Check_In_Date: Optional[date] = None
@@ -40,6 +48,14 @@ class FlightReservationUpdate(BaseModel):
     Origin_Airport_Code: Optional[str] = None
     Destination_Airport_Code: Optional[str] = None
 
+class AttractionReservationUpdate(BaseModel):
+    Attraction_Name: Optional[str] = None
+    Location: Optional[str] = None
+    Date: Optional[date] = None
+    Time: Optional[str] = None
+    Price_Type: Optional[str] = None
+    Rate: Optional[float] = None
+
 class HotelReservationResponse(HotelReservationCreate):
     Reservation_No: int
     Hotel_Name: Optional[str] = None
@@ -47,6 +63,11 @@ class HotelReservationResponse(HotelReservationCreate):
         from_attributes = True
 
 class FlightReservationResponse(FlightReservationCreate):
+    Reservation_No: int
+    class Config:
+        from_attributes = True
+
+class AttractionReservationResponse(AttractionReservationCreate):
     Reservation_No: int
     class Config:
         from_attributes = True
@@ -60,6 +81,7 @@ class BookingBase(BaseModel):
 class BookingCreate(BookingBase):
     hotel_reservations: list[HotelReservationCreate] = Field(default_factory=list)
     flight_reservations: list[FlightReservationCreate] = Field(default_factory=list)
+    attraction_reservations: list[AttractionReservationCreate] = Field(default_factory=list)
 
 class BookingUpdate(BaseModel):
     Start_Date: Optional[date] = None
@@ -82,3 +104,7 @@ class BookingDetailResponse(BookingResponse):
     user: UserResponse
     hotel_reservations: list[HotelReservationResponse] = Field(default_factory=list)
     flight_reservations: list[FlightReservationResponse] = Field(default_factory=list)
+    attraction_reservations: list[AttractionReservationResponse] = Field(default_factory=list)
+    hotelReservations: list[HotelReservationResponse] = Field(default_factory=list)
+    flightReservations: list[FlightReservationResponse] = Field(default_factory=list)
+    attractionReservations: list[AttractionReservationResponse] = Field(default_factory=list)

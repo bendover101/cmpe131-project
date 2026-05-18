@@ -11,7 +11,7 @@ export const bookingService = {
       };
       
       const response = await api.post('/bookings', payload);
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Error saving booking:", error);
       throw error;
@@ -26,7 +26,7 @@ export const bookingService = {
           agency_id: tenantConfig.key 
         }
       });
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Error fetching bookings:", error);
       throw error;
