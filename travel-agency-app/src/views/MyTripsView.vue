@@ -39,6 +39,19 @@ async function loadTrips() {
   }
 }
 
+async function handleCancel(bookingId) {
+  if (!window.confirm("Are you sure you want to cancel this trip? This will permanently delete all associated reservations.")) {
+    return
+  }
+
+  try {
+    await bookingService.cancelBooking(bookingId)
+    trips.value = trips.value.filter(trip => trip.bookingId !== bookingId)
+  } catch (error) {
+    alert(error.message || "Failed to cancel trip. Please try again.")
+  }
+}
+
 onMounted(() => {
   loadTrips()
 })
@@ -68,7 +81,12 @@ onMounted(() => {
             <p class="trip-card__meta">Booking #{{ trip.bookingId }}</p>
             <h2 class="trip-card__title">{{ formatDate(trip.startDate) }} to {{ formatDate(trip.endDate) }}</h2>
           </div>
-          <div class="trip-card__pill">{{ trip.flightReservations.length }} flights · {{ trip.hotelReservations.length }} hotels</div>
+          <div class="trip-card__actions">
+            <button class="btn-cancel-trip" @click="handleCancel(trip.bookingId)" title="Cancel this trip">
+              ❌ Cancel Trip
+            </button>
+            <div class="trip-card__pill">{{ trip.flightReservations.length }} flights · {{ trip.hotelReservations.length }} hotels</div>
+          </div>
         </div>
 
         <section class="trip-section">
@@ -247,6 +265,39 @@ onMounted(() => {
   color: var(--color-primary-dark);
 }
 
+.trip-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-cancel-trip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-cancel-trip:hover {
+  background: #b91c1c;
+  color: #fff;
+  border-color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.15);
+}
+
+.btn-cancel-trip:active {
+  transform: translateY(0);
+}
+
 @media (max-width: 768px) {
   .my-trips-view {
     padding: 1rem;
@@ -256,6 +307,12 @@ onMounted(() => {
   .trip-card__header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .trip-card__actions {
+    margin-top: 0.75rem;
+    width: 100%;
+    justify-content: space-between;
   }
 }
 </style>

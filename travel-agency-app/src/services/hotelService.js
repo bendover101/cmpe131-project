@@ -16,7 +16,7 @@ export const hotelService = {
       return response.results || [];
     } catch (error) {
       console.error("Error fetching hotels:", error);
-      return []; 
+      throw new Error("Hotel data currently unavailable. Please try again later.");
     }
   }
 };

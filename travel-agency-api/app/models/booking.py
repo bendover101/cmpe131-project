@@ -1,7 +1,3 @@
-# ==========================================
-# SQLALCHEMY MODELS (Zone 2 of ERD)
-# ==========================================
-
 from sqlalchemy import Column, Integer, String, ForeignKey, Date, Float
 from sqlalchemy.orm import foreign, relationship
 from app.core.database import Base # Import Base from your core config
@@ -100,7 +96,7 @@ class AttractionReservation(Base):
     Location = Column(String, nullable=False)
     Date = Column(Date, nullable=False)
     Time = Column(String, nullable=True)
-    Price_Type = Column(String, nullable=False) # e.g. "Free", "Pay what you want", "Fixed"
+    Price_Type = Column(String, nullable=False) # "Free", "Pay what you want", "Fixed"
     Rate = Column(Float, nullable=True) # 0 for free
 
     booking = relationship("Booking", back_populates="attraction_reservations")

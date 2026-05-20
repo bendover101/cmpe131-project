@@ -31,5 +31,15 @@ export const bookingService = {
       console.error("Error fetching bookings:", error);
       throw error;
     }
+  },
+
+  async cancelBooking(bookingId) {
+    try {
+      const response = await api.delete(`/bookings/${bookingId}`);
+      return response;
+    } catch (error) {
+      console.error("Error cancelling booking:", error);
+      throw error;
+    }
   }
 };

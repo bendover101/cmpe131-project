@@ -44,6 +44,12 @@ function findTenantByKey(key) {
 }
 
 function resolveTenant() {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    const urlTenant = findTenantByKey(params.get('tenant'))
+    if (urlTenant) return urlTenant
+  }
+
   const explicitTenant = findTenantByKey(import.meta.env.VITE_TENANT)
   if (explicitTenant) return explicitTenant
 

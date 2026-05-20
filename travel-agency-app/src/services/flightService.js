@@ -15,7 +15,7 @@ export const flightService = {
 
     } catch (error) {
       console.error("Error fetching flights:", error);
-      return [];
+      throw new Error("Flight data currently unavailable. Please try again later.");
     }
   }
 };

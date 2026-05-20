@@ -224,3 +224,14 @@ def get_user_bookings(user_id: int, agency_id: str = None, db: Session = Depends
 
     bookings = query.all()
     return bookings
+
+@router.delete("/{booking_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{booking_id}/", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter(Booking.Booking_Id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    db.delete(booking)
+    db.commit()
+    return None
+
