@@ -23,6 +23,24 @@ def seed_users():
     else:
         user1.Password = "password"
         
+    # Seed John Doe as requested by Phase 3 prompt
+    john = db.query(User).filter(User.Email == "john.doe@example.com").first()
+    if not john:
+        print("Creating John Doe...")
+        u_john = User(
+            First_Name="John",
+            Last_Name="Doe",
+            Email="john.doe@example.com",
+            Phone_Number="555-123-4567",
+            Password="CMPE-131@2026"
+        )
+        db.add(u_john)
+    else:
+        john.Password = "CMPE-131@2026"
+        john.First_Name = "John"
+        john.Last_Name = "Doe"
+        john.Phone_Number = "555-123-4567"
+        
     db.commit()
     db.close()
     print("Database seeded with test users!")

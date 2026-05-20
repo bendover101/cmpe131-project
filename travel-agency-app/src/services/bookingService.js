@@ -41,5 +41,15 @@ export const bookingService = {
       console.error("Error cancelling booking:", error);
       throw error;
     }
+  },
+
+  async updateBooking(bookingId, bookingData) {
+    try {
+      const response = await api.put(`/bookings/${bookingId}`, bookingData);
+      return response;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      throw error;
+    }
   }
 };

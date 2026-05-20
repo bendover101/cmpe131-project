@@ -235,3 +235,62 @@ def cancel_booking(booking_id: int, db: Session = Depends(get_db)):
     db.commit()
     return None
 
+@router.put("/{booking_id}", response_model=BookingDetailResponse)
+@router.put("/{booking_id}/", response_model=BookingDetailResponse)
+def update_booking(booking_id: int, payload: Dict[str, Any], db: Session = Depends(get_db)):
+    booking = db.query(Booking).filter(Booking.Booking_Id == booking_id).first()
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    
+    start_date_str = payload.get("Start_Date") or payload.get("startDate")
+    end_date_str = payload.get("End_Date") or payload.get("endDate")
+    
+    if start_date_str:
+        try:
+            booking.Start_Date = datetime.strptime(start_date_str.split("T")[0], "%Y-%m-%d").date()
+        except:
+            pass
+            
+    if end_date_str:
+        try:
+            booking.End_Date = datetime.strptime(end_date_str.split("T")[0], "%Y-%m-%d").date()
+        except:
+            pass
+            
+    hotel_res = payload.get("hotel_reservations") or payload.get("hotelReservations") or []
+    for h in hotel_res:
+        res_no = h.get("Reservation_No") or h.get("reservationNo")
+        if res_no:
+            db_h = db.query(HotelReservation).filter(HotelReservation.Reservation_No == res_no).first()
+            if db_h:
+                rate = h.get("Rate") or h.get("rate")
+                if rate is not None:
+                    db_h.Rate = float(rate)
+                h_in = h.get("Check_In_Date") or h.get("checkInDate")
+                if h_in:
+                    db_h.Check_In_Date = datetime.strptime(h_in.split("T")[0], "%Y-%m-%d").date()
+                h_out = h.get("Check_Out_Date") or h.get("checkOutDate")
+                if h_out:
+                    db_h.Check_Out_Date = datetime.strptime(h_out.split("T")[0], "%Y-%m-%d").date()
+
+    flight_res = payload.get("flight_reservations") or payload.get("flightReservations") or []
+    for f in flight_res:
+        res_no = f.get("Reservation_No") or f.get("reservationNo")
+        if res_no:
+            db_f = db.query(FlightReservation).filter(FlightReservation.Reservation_No == res_no).first()
+            if db_f:
+                rate = f.get("Rate") or f.get("rate")
+                if rate is not None:
+                    db_f.Rate = float(rate)
+                f_dep = f.get("Departure_Date") or f.get("departureDate")
+                if f_dep:
+                    db_f.Departure_Date = datetime.strptime(f_dep.split("T")[0], "%Y-%m-%d").date()
+                f_arr = f.get("Arrive_Date") or f.get("arriveDate")
+                if f_arr:
+                    db_f.Arrive_Date = datetime.strptime(f_arr.split("T")[0], "%Y-%m-%d").date()
+
+    db.commit()
+    db.refresh(booking)
+    return booking
+
+

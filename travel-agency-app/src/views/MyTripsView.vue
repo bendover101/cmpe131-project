@@ -52,6 +52,55 @@ async function handleCancel(bookingId) {
   }
 }
 
+const editingTripId = ref(null)
+const editStartDate = ref('')
+const editEndDate = ref('')
+
+function startEdit(trip) {
+  editingTripId.value = trip.bookingId
+  
+  // Format dates to YYYY-MM-DD for input value
+  const sDate = new Date(trip.startDate)
+  const eDate = new Date(trip.endDate)
+  
+  editStartDate.value = !Number.isNaN(sDate.getTime()) 
+    ? sDate.toISOString().split('T')[0] 
+    : trip.startDate
+  editEndDate.value = !Number.isNaN(eDate.getTime()) 
+    ? eDate.toISOString().split('T')[0] 
+    : trip.endDate
+}
+
+function cancelEdit() {
+  editingTripId.value = null
+  editStartDate.value = ''
+  editEndDate.value = ''
+}
+
+async function handleSaveEdit(bookingId) {
+  if (!editStartDate.value || !editEndDate.value) {
+    alert("Please enter valid start and end dates.")
+    return
+  }
+
+  try {
+    const updated = await bookingService.updateBooking(bookingId, {
+      startDate: editStartDate.value,
+      endDate: editEndDate.value
+    })
+    
+    const index = trips.value.findIndex(trip => trip.bookingId === bookingId)
+    if (index !== -1) {
+      trips.value[index].startDate = updated.startDate || updated.Start_Date || editStartDate.value
+      trips.value[index].endDate = updated.endDate || updated.End_Date || editEndDate.value
+    }
+    
+    cancelEdit()
+  } catch (error) {
+    alert(error.message || "Failed to update booking. Please try again.")
+  }
+}
+
 onMounted(() => {
   loadTrips()
 })
@@ -76,12 +125,38 @@ onMounted(() => {
 
     <div v-else class="trips-list">
       <article v-for="trip in trips" :key="trip.bookingId" class="trip-card">
-        <div class="trip-card__header">
+        <div v-if="editingTripId === trip.bookingId" class="trip-card__header trip-card__header--edit">
+          <div>
+            <p class="trip-card__meta">Editing Booking #{{ trip.bookingId }}</p>
+            <div class="edit-fields">
+              <label class="edit-label">
+                Start:
+                <input type="date" v-model="editStartDate" class="edit-input" />
+              </label>
+              <label class="edit-label">
+                End:
+                <input type="date" v-model="editEndDate" class="edit-input" />
+              </label>
+            </div>
+          </div>
+          <div class="trip-card__actions">
+            <button class="btn-save-trip" @click="handleSaveEdit(trip.bookingId)" title="Save changes">
+              💾 Save
+            </button>
+            <button class="btn-cancel-edit" @click="cancelEdit" title="Cancel editing">
+              Cancel
+            </button>
+          </div>
+        </div>
+        <div v-else class="trip-card__header">
           <div>
             <p class="trip-card__meta">Booking #{{ trip.bookingId }}</p>
             <h2 class="trip-card__title">{{ formatDate(trip.startDate) }} to {{ formatDate(trip.endDate) }}</h2>
           </div>
           <div class="trip-card__actions">
+            <button class="btn-edit-trip" @click="startEdit(trip)" title="Edit trip dates">
+              ✏️ Edit Dates
+            </button>
             <button class="btn-cancel-trip" @click="handleCancel(trip.bookingId)" title="Cancel this trip">
               ❌ Cancel Trip
             </button>
@@ -296,6 +371,107 @@ onMounted(() => {
 
 .btn-cancel-trip:active {
   transform: translateY(0);
+}
+
+.btn-edit-trip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: var(--color-bg-alt, #f3f4f6);
+  color: var(--color-primary-dark, #4b5563);
+  border: 1px solid var(--color-border, #d1d5db);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-edit-trip:hover {
+  background: var(--color-primary-dark, #4b5563);
+  color: #fff;
+  border-color: var(--color-primary-dark, #4b5563);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(75, 85, 99, 0.15);
+}
+
+.btn-edit-trip:active {
+  transform: translateY(0);
+}
+
+.btn-save-trip {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: #10b981;
+  color: #fff;
+  border: 1px solid #059669;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-save-trip:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.2);
+}
+
+.btn-save-trip:active {
+  transform: translateY(0);
+}
+
+.btn-cancel-edit {
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-cancel-edit:hover {
+  background: #e5e7eb;
+}
+
+.edit-fields {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.edit-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted, #6b7280);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.edit-input {
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 8px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  background: #fff;
+  color: var(--color-text);
+}
+
+.edit-input:focus {
+  border-color: var(--color-accent-dark, #3b82f6);
 }
 
 @media (max-width: 768px) {
