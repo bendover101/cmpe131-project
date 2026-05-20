@@ -52,10 +52,11 @@ The search page pulls data for flights, hostels, and tours all at once:
 - It checks this against a budget cap (default is $1,500).
 - If the total goes over $1,500, a red warning banner pops up saying you're over budget, and the "Book Now" button gets disabled.
 
-### 3.4 Booking Simulation & Easy Cancellation
+### 3.4 Booking Simulation, Cancellation & Editing
 - Saving to Database: When a user clicks "Book Now", it saves the flights, hotel, and activities to our SQLite database in one transaction.
 - Trips Dashboard: Users can go to the "My Trips" tab to see all their bookings.
 - One-Click Cancel: We added a "Cancel Trip" button. Clicking it removes the booking from the database and automatically cleans up all the flight and hotel reservations tied to it.
+- Date Editing: We added an "Edit Dates" button. Clicking it turns the trip card header into inline date inputs, letting users edit their start and end dates and save the updates to the database. The UI refreshes with the updated dates immediately.
 
 ---
 
@@ -200,3 +201,14 @@ Steps to Test:
 1. Try to search for London flights.
 What Should Happen: UI displays "Flight data currently unavailable. Please try again later." instead of breaking the page.
 Did it Pass: Passed
+
+Test Case TC-05 (Trip Date Editing)
+What We Needed first: User logged in. Existing booking in their dashboard.
+Steps to Test:
+1. Navigate to My Trips.
+2. Click Edit Dates on a booking card.
+3. Change the Start Date or End Date to new valid dates.
+4. Click Save.
+What Should Happen: The booking is updated in the database, and the UI immediately displays the refreshed travel dates.
+Did it Pass: Passed
+
